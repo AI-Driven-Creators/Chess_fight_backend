@@ -67,6 +67,55 @@ impl BattleStateMachine {
         &self.current_state
     }
 
+    fn on_enter_state(&mut self, state: BattleState) {
+        match state {
+            BattleState::Init => {
+                println!("Entering Init state");
+            }
+            BattleState::Waiting => {
+                println!("Entering Waiting state");
+                self.waiting_start_time = Some(Instant::now());
+            }
+            BattleState::Fighting => {
+                println!("Entering Fighting state");
+                self.waiting_start_time = None;
+            }
+            BattleState::Ended => {
+                println!("Entering Ended state");
+            }
+            BattleState::Result => {
+                println!("Entering Result state");
+            }
+            BattleState::NextRound => {
+                println!("Entering NextRound state");
+            }
+        }
+    }
+
+    fn on_exit_state(&mut self, state: BattleState) {
+        match state {
+            BattleState::Init => {
+                println!("Exiting Init state");
+            }
+            BattleState::Waiting => {
+                println!("Exiting Waiting state");
+                self.waiting_start_time = None;
+            }
+            BattleState::Fighting => {
+                println!("Exiting Fighting state");
+            }
+            BattleState::Ended => {
+                println!("Exiting Ended state");
+            }
+            BattleState::Result => {
+                println!("Exiting Result state");
+            }
+            BattleState::NextRound => {
+                println!("Exiting NextRound state");
+            }
+        }
+    }
+
     /// 切換到下一狀態
     /// - `new_state`: 要切換到的新狀態
     /// - 包含條件檢查，確保狀態轉換合法
@@ -79,9 +128,11 @@ impl BattleStateMachine {
             (BattleState::Ended, BattleState::Result) |
             (BattleState::Result, BattleState::NextRound) |
             (BattleState::NextRound, BattleState::Init) => {
+                self.on_exit_state(self.current_state);
                 println!("Transitioning from {:?} to {:?}", self.current_state, new_state);
                 self.history.push(new_state); // 記錄狀態切換
                 self.current_state = new_state; // 更新當前狀態
+                self.on_enter_state(new_state);
                 Ok(())
             }
             // 非法的狀態轉換
@@ -243,6 +294,14 @@ mod tests {
         let mut state_machine = BattleStateMachine::new();
         let result = state_machine.handle_event(BattleEvent::BattleEnd);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_state_callbacks() {
+        let mut state_machine = BattleStateMachine::new();
+        let result = state_machine.transition_to(BattleState::Waiting);
+        assert!(result.is_ok());
+        assert!(state_machine.waiting_start_time.is_some());
     }
 }
 
