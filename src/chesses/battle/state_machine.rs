@@ -1,9 +1,10 @@
 use std::time::{Duration, Instant};
 use std::fmt;
+use std::collections::HashMap;
 
 // 定義戰鬥狀態列舉，包括 Init, Waiting, Fighting, Ended, Result, NextRound
 /// 戰鬥狀態列舉，表示戰鬥的不同階段
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum BattleState {
     Init,       // 初始化階段
     Waiting,    // 等待玩家準備
@@ -49,6 +50,8 @@ pub struct BattleStateMachine {
     history: Vec<BattleState>, // 新增 history 欄位
     waiting_start_time: Option<Instant>,  // 記錄等待開始時間
     waiting_duration: Duration,           // 等待時間設定
+    state_durations: HashMap<BattleState, Duration>, // 記錄每個狀態的持續時間
+    last_state_change: Instant,           // 記錄上次狀態改變的時間
 }
 
 impl BattleStateMachine {
@@ -59,6 +62,8 @@ impl BattleStateMachine {
             history: vec![BattleState::Init], // 初始化時記錄第一個狀態
             waiting_start_time: None,
             waiting_duration: Duration::from_secs(60), // 設定60秒等待時間
+            state_durations: HashMap::new(),
+            last_state_change: Instant::now(),
         }
     }
 
@@ -116,6 +121,15 @@ impl BattleStateMachine {
         }
     }
 
+    fn update_state_duration(&mut self) {
+        let duration = self.last_state_change.elapsed();
+        self.state_durations
+            .entry(self.current_state)
+            .and_modify(|d| *d += duration)
+            .or_insert(duration);
+        self.last_state_change = Instant::now();
+    }
+
     /// 切換到下一狀態
     /// - `new_state`: 要切換到的新狀態
     /// - 包含條件檢查，確保狀態轉換合法
@@ -128,6 +142,7 @@ impl BattleStateMachine {
             (BattleState::Ended, BattleState::Result) |
             (BattleState::Result, BattleState::NextRound) |
             (BattleState::NextRound, BattleState::Init) => {
+                self.update_state_duration();
                 self.on_exit_state(self.current_state);
                 println!("Transitioning from {:?} to {:?}", self.current_state, new_state);
                 self.history.push(new_state); // 記錄狀態切換
@@ -145,6 +160,11 @@ impl BattleStateMachine {
     /// 獲取狀態歷史
     pub fn get_history(&self) -> &Vec<BattleState> {
         &self.history
+    }
+
+    /// 獲取某個狀態的持續時間
+    pub fn get_state_duration(&self, state: BattleState) -> Option<Duration> {
+        self.state_durations.get(&state).copied()
     }
 
     /// 處理事件
@@ -302,6 +322,17 @@ mod tests {
         let result = state_machine.transition_to(BattleState::Waiting);
         assert!(result.is_ok());
         assert!(state_machine.waiting_start_time.is_some());
+    }
+
+    #[test]
+    fn test_state_duration_tracking() {
+        let mut state_machine = BattleStateMachine::new();
+        let _ = state_machine.transition_to(BattleState::Waiting);
+        std::thread::sleep(Duration::from_secs(2));
+        let _ = state_machine.transition_to(BattleState::Fighting);
+        let waiting_duration = state_machine.get_state_duration(BattleState::Waiting);
+        assert!(waiting_duration.is_some());
+        assert!(waiting_duration.unwrap() >= Duration::from_secs(2));
     }
 }
 
