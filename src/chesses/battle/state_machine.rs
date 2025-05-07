@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 // 定義戰鬥狀態列舉，包括 Init, Waiting, Fighting, Ended, Result, NextRound
 /// 戰鬥狀態列舉，表示戰鬥的不同階段
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -10,11 +12,21 @@ pub enum BattleState {
     NextRound,  // 準備下一回合
 }
 
+// 定義戰鬥事件
+#[derive(Debug)]
+pub enum BattleEvent {
+    WaitingTimeOut,    // 等待時間結束
+    BattleStart,       // 戰鬥開始
+    BattleEnd,         // 戰鬥結束
+}
+
 // 設計狀態機結構
 /// 戰鬥狀態機，用於管理戰鬥的狀態流轉
 pub struct BattleStateMachine {
     current_state: BattleState, // 當前的戰鬥狀態
     history: Vec<BattleState>, // 新增 history 欄位
+    waiting_start_time: Option<Instant>,  // 記錄等待開始時間
+    waiting_duration: Duration,           // 等待時間設定
 }
 
 impl BattleStateMachine {
@@ -23,6 +35,8 @@ impl BattleStateMachine {
         Self {
             current_state: BattleState::Init,
             history: vec![BattleState::Init], // 初始化時記錄第一個狀態
+            waiting_start_time: None,
+            waiting_duration: Duration::from_secs(60), // 設定60秒等待時間
         }
     }
 
@@ -59,16 +73,41 @@ impl BattleStateMachine {
         &self.history
     }
 
+    /// 處理事件
+    pub fn handle_event(&mut self, event: BattleEvent) {
+        match (self.current_state, event) {
+            (BattleState::Waiting, BattleEvent::WaitingTimeOut) => {
+                println!("Waiting time is over, starting battle...");
+                self.transition_to(BattleState::Fighting);
+            }
+            _ => {
+                println!("Event {:?} not handled in state {:?}", event, self.current_state);
+            }
+        }
+    }
+
+    /// 更新等待時間檢查
+    fn check_waiting_timeout(&mut self) {
+        if let (BattleState::Waiting, Some(start_time)) = (self.current_state, self.waiting_start_time) {
+            if start_time.elapsed() >= self.waiting_duration {
+                self.handle_event(BattleEvent::WaitingTimeOut);
+            }
+        }
+    }
+
     /// 處理 Init 狀態的行為
     fn handle_init(&mut self) {
         println!("Initializing battle...");
         self.transition_to(BattleState::Waiting); // 切換到 Waiting 狀態
     }
 
-    /// 處理 Waiting 狀態的行為
+    /// 修改原有的 handle_waiting 方法
     fn handle_waiting(&mut self) {
-        println!("Waiting for players...");
-        self.transition_to(BattleState::Fighting); // 切換到 Fighting 狀態
+        if self.waiting_start_time.is_none() {
+            println!("Waiting for players... (60 seconds)");
+            self.waiting_start_time = Some(Instant::now());
+        }
+        self.check_waiting_timeout();
     }
 
     /// 處理 Fighting 狀態的行為
@@ -95,7 +134,7 @@ impl BattleStateMachine {
         self.transition_to(BattleState::Init); // 切換到 Init 狀態
     }
 
-    /// 更新狀態機，根據當前狀態執行對應的行為
+    /// 修改原有的 update 方法
     pub fn update(&mut self) {
         match self.current_state {
             BattleState::Init => self.handle_init(),
@@ -119,6 +158,8 @@ fn main() {
     }
 }
 
+
+// 測試模組
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,6 +192,18 @@ mod tests {
         state_machine.transition_to(BattleState::Waiting);
         state_machine.transition_to(BattleState::Fighting);
         assert_eq!(state_machine.get_history(), &vec![BattleState::Init, BattleState::Waiting, BattleState::Fighting]);
+    }
+
+    #[test]
+    fn test_waiting_timeout() {
+        let mut state_machine = BattleStateMachine::new();
+        state_machine.transition_to(BattleState::Waiting);
+        
+        // 模擬等待時間已過
+        state_machine.waiting_start_time = Some(Instant::now() - Duration::from_secs(61));
+        state_machine.update();
+        
+        assert_eq!(*state_machine.get_state(), BattleState::Fighting);
     }
 }
 
