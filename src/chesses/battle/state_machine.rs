@@ -1,4 +1,5 @@
 use std::time::{Duration, Instant};
+use std::fmt;
 
 // 定義戰鬥狀態列舉，包括 Init, Waiting, Fighting, Ended, Result, NextRound
 /// 戰鬥狀態列舉，表示戰鬥的不同階段
@@ -18,6 +19,27 @@ pub enum BattleEvent {
     WaitingTimeOut,    // 等待時間結束
     BattleStart,       // 戰鬥開始
     BattleEnd,         // 戰鬥結束
+}
+
+/// 定義錯誤處理機制
+#[derive(Debug)]
+pub enum BattleError {
+    InvalidStateTransition(BattleState, BattleState),
+    InvalidEventHandling(BattleEvent, BattleState),
+    TimeoutError(String),
+}
+
+impl fmt::Display for BattleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BattleError::InvalidStateTransition(from, to) => 
+                write!(f, "Invalid state transition from {:?} to {:?}", from, to),
+            BattleError::InvalidEventHandling(event, state) => 
+                write!(f, "Cannot handle event {:?} in state {:?}", event, state),
+            BattleError::TimeoutError(msg) => 
+                write!(f, "Timeout error: {}", msg),
+        }
+    }
 }
 
 // 設計狀態機結構
@@ -48,7 +70,7 @@ impl BattleStateMachine {
     /// 切換到下一狀態
     /// - `new_state`: 要切換到的新狀態
     /// - 包含條件檢查，確保狀態轉換合法
-    pub fn transition_to(&mut self, new_state: BattleState) {
+    pub fn transition_to(&mut self, new_state: BattleState) -> Result<(), BattleError> {
         match (self.current_state, new_state) {
             // 合法的狀態轉換
             (BattleState::Init, BattleState::Waiting) |
@@ -60,10 +82,11 @@ impl BattleStateMachine {
                 println!("Transitioning from {:?} to {:?}", self.current_state, new_state);
                 self.history.push(new_state); // 記錄狀態切換
                 self.current_state = new_state; // 更新當前狀態
+                Ok(())
             }
             // 非法的狀態轉換
             _ => {
-                println!("Invalid state transition: {:?} -> {:?}", self.current_state, new_state);
+                Err(BattleError::InvalidStateTransition(self.current_state, new_state))
             }
         }
     }
@@ -74,14 +97,14 @@ impl BattleStateMachine {
     }
 
     /// 處理事件
-    pub fn handle_event(&mut self, event: BattleEvent) {
+    pub fn handle_event(&mut self, event: BattleEvent) -> Result<(), BattleError> {
         match (self.current_state, event) {
             (BattleState::Waiting, BattleEvent::WaitingTimeOut) => {
                 println!("Waiting time is over, starting battle...");
-                self.transition_to(BattleState::Fighting);
+                self.transition_to(BattleState::Fighting)
             }
             _ => {
-                println!("Event {:?} not handled in state {:?}", event, self.current_state);
+                Err(BattleError::InvalidEventHandling(event, self.current_state))
             }
         }
     }
@@ -90,7 +113,7 @@ impl BattleStateMachine {
     fn check_waiting_timeout(&mut self) {
         if let (BattleState::Waiting, Some(start_time)) = (self.current_state, self.waiting_start_time) {
             if start_time.elapsed() >= self.waiting_duration {
-                self.handle_event(BattleEvent::WaitingTimeOut);
+                let _ = self.handle_event(BattleEvent::WaitingTimeOut);
             }
         }
     }
@@ -98,7 +121,7 @@ impl BattleStateMachine {
     /// 處理 Init 狀態的行為
     fn handle_init(&mut self) {
         println!("Initializing battle...");
-        self.transition_to(BattleState::Waiting); // 切換到 Waiting 狀態
+        let _ = self.transition_to(BattleState::Waiting); // 切換到 Waiting 狀態
     }
 
     /// 修改原有的 handle_waiting 方法
@@ -113,25 +136,25 @@ impl BattleStateMachine {
     /// 處理 Fighting 狀態的行為
     fn handle_fighting(&mut self) {
         println!("Battle in progress...");
-        self.transition_to(BattleState::Ended); // 切換到 Ended 狀態
+        let _ = self.transition_to(BattleState::Ended); // 切換到 Ended 狀態
     }
 
     /// 處理 Ended 狀態的行為
     fn handle_ended(&mut self) {
         println!("Battle ended.");
-        self.transition_to(BattleState::Result); // 切換到 Result 狀態
+        let _ = self.transition_to(BattleState::Result); // 切換到 Result 狀態
     }
 
     /// 處理 Result 狀態的行為
     fn handle_result(&mut self) {
         println!("Displaying results...");
-        self.transition_to(BattleState::NextRound); // 切換到 NextRound 狀態
+        let _ = self.transition_to(BattleState::NextRound); // 切換到 NextRound 狀態
     }
 
     /// 處理 NextRound 狀態的行為
     fn handle_next_round(&mut self) {
         println!("Preparing next round...");
-        self.transition_to(BattleState::Init); // 切換到 Init 狀態
+        let _ = self.transition_to(BattleState::Init); // 切換到 Init 狀態
     }
 
     /// 修改原有的 update 方法
@@ -173,37 +196,53 @@ mod tests {
     #[test]
     fn test_valid_transitions() {
         let mut state_machine = BattleStateMachine::new();
-        state_machine.transition_to(BattleState::Waiting);
+        let result = state_machine.transition_to(BattleState::Waiting);
+        assert!(result.is_ok());
         assert_eq!(*state_machine.get_state(), BattleState::Waiting);
-        state_machine.transition_to(BattleState::Fighting);
+        let result = state_machine.transition_to(BattleState::Fighting);
+        assert!(result.is_ok());
         assert_eq!(*state_machine.get_state(), BattleState::Fighting);
     }
 
     #[test]
-    fn test_invalid_transition() {
+    fn test_invalid_transition_error() {
         let mut state_machine = BattleStateMachine::new();
-        state_machine.transition_to(BattleState::Fighting); // Invalid transition
-        assert_eq!(*state_machine.get_state(), BattleState::Init);
+        let result = state_machine.transition_to(BattleState::Fighting); // Invalid transition
+        assert!(result.is_err());
+        match result {
+            Err(BattleError::InvalidStateTransition(from, to)) => {
+                assert_eq!(from, BattleState::Init);
+                assert_eq!(to, BattleState::Fighting);
+            }
+            _ => panic!("Expected InvalidStateTransition error"),
+        }
     }
 
     #[test]
     fn test_history_tracking() {
         let mut state_machine = BattleStateMachine::new();
-        state_machine.transition_to(BattleState::Waiting);
-        state_machine.transition_to(BattleState::Fighting);
+        let _ = state_machine.transition_to(BattleState::Waiting);
+        let _ = state_machine.transition_to(BattleState::Fighting);
         assert_eq!(state_machine.get_history(), &vec![BattleState::Init, BattleState::Waiting, BattleState::Fighting]);
     }
 
     #[test]
     fn test_waiting_timeout() {
         let mut state_machine = BattleStateMachine::new();
-        state_machine.transition_to(BattleState::Waiting);
+        let _ = state_machine.transition_to(BattleState::Waiting);
         
         // 模擬等待時間已過
         state_machine.waiting_start_time = Some(Instant::now() - Duration::from_secs(61));
         state_machine.update();
         
         assert_eq!(*state_machine.get_state(), BattleState::Fighting);
+    }
+
+    #[test]
+    fn test_invalid_event_error() {
+        let mut state_machine = BattleStateMachine::new();
+        let result = state_machine.handle_event(BattleEvent::BattleEnd);
+        assert!(result.is_err());
     }
 }
 
