@@ -239,6 +239,17 @@ impl BattleStateMachine {
             BattleState::NextRound => self.handle_next_round(),
         }
     }
+
+    pub fn reset(&mut self) -> Result<(), BattleError> {
+        self.update_state_duration();
+        self.on_exit_state(self.current_state);
+        self.current_state = BattleState::Init;
+        self.history.clear();
+        self.history.push(BattleState::Init);
+        self.waiting_start_time = None;
+        self.on_enter_state(BattleState::Init);
+        Ok(())
+    }
 }
 
 /// 整合到遊戲主邏輯
