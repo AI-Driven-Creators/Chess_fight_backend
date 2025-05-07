@@ -14,6 +14,7 @@ pub enum BattleState {
 /// 戰鬥狀態機，用於管理戰鬥的狀態流轉
 pub struct BattleStateMachine {
     current_state: BattleState, // 當前的戰鬥狀態
+    history: Vec<BattleState>, // 新增 history 欄位
 }
 
 impl BattleStateMachine {
@@ -21,6 +22,7 @@ impl BattleStateMachine {
     pub fn new() -> Self {
         Self {
             current_state: BattleState::Init,
+            history: vec![BattleState::Init], // 初始化時記錄第一個狀態
         }
     }
 
@@ -42,6 +44,7 @@ impl BattleStateMachine {
             (BattleState::Result, BattleState::NextRound) |
             (BattleState::NextRound, BattleState::Init) => {
                 println!("Transitioning from {:?} to {:?}", self.current_state, new_state);
+                self.history.push(new_state); // 記錄狀態切換
                 self.current_state = new_state; // 更新當前狀態
             }
             // 非法的狀態轉換
@@ -49,6 +52,11 @@ impl BattleStateMachine {
                 println!("Invalid state transition: {:?} -> {:?}", self.current_state, new_state);
             }
         }
+    }
+
+    /// 獲取狀態歷史
+    pub fn get_history(&self) -> &Vec<BattleState> {
+        &self.history
     }
 
     /// 處理 Init 狀態的行為
