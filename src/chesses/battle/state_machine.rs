@@ -119,3 +119,38 @@ fn main() {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initial_state() {
+        let state_machine = BattleStateMachine::new();
+        assert_eq!(*state_machine.get_state(), BattleState::Init);
+    }
+
+    #[test]
+    fn test_valid_transitions() {
+        let mut state_machine = BattleStateMachine::new();
+        state_machine.transition_to(BattleState::Waiting);
+        assert_eq!(*state_machine.get_state(), BattleState::Waiting);
+        state_machine.transition_to(BattleState::Fighting);
+        assert_eq!(*state_machine.get_state(), BattleState::Fighting);
+    }
+
+    #[test]
+    fn test_invalid_transition() {
+        let mut state_machine = BattleStateMachine::new();
+        state_machine.transition_to(BattleState::Fighting); // Invalid transition
+        assert_eq!(*state_machine.get_state(), BattleState::Init);
+    }
+
+    #[test]
+    fn test_history_tracking() {
+        let mut state_machine = BattleStateMachine::new();
+        state_machine.transition_to(BattleState::Waiting);
+        state_machine.transition_to(BattleState::Fighting);
+        assert_eq!(state_machine.get_history(), &vec![BattleState::Init, BattleState::Waiting, BattleState::Fighting]);
+    }
+}
+
