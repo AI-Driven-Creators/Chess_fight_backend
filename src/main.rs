@@ -1,12 +1,16 @@
 use std::{
     net::{TcpListener, TcpStream},
     thread::spawn,
+    sync::Arc,
 };
 use log::*;
 use tungstenite::{accept, Error, Message, Result, handshake::HandshakeError, handshake::HandshakeRole};
 
 mod handlers;
-use handlers::get_handler;
+use handlers::{EchoHandler, PingHandler};
+
+mod router;
+use router::Router;
 
 fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
     match err {
@@ -16,6 +20,12 @@ fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
 }
 
 fn handle_client(stream: TcpStream) -> Result<()> {
+    let mut router = Router::new();
+    
+    // 註冊處理器
+    router.add_handler(Arc::new(EchoHandler));
+    router.add_handler(Arc::new(PingHandler));
+
     let mut socket = accept(stream).map_err(must_not_block)?;
     info!("Client connected");
 
@@ -25,10 +35,7 @@ fn handle_client(stream: TcpStream) -> Result<()> {
                 let response = match serde_json::from_str::<serde_json::Value>(&text) {
                     Ok(val) => {
                         match val.get("action").and_then(|a| a.as_str()) {
-                            Some(action) => {
-                                let handler = get_handler(action);
-                                handler.handle(&val)
-                            }
+                            Some(action) => router.handle(action, &val),
                             None => serde_json::json!({ "status": "error", "reason": "missing action" }),
                         }
                     }
