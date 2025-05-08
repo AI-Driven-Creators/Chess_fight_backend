@@ -1,14 +1,11 @@
-use serde_json::Value;
+use crate::types::response::{WsRequest, WsResponse};
 use super::MessageHandler;
 
 pub struct PingHandler;
 
 impl MessageHandler for PingHandler {
-    fn handle(&self, _val: &Value) -> Value {
-        serde_json::json!({
-            "status": "ok",
-            "pong": true
-        })
+    fn handle(&self, _val: &WsRequest) -> WsResponse {
+        WsResponse::ok(Some(serde_json::json!({ "pong": true })))
     }
 
     fn can_handle(&self, action: &str) -> bool {

@@ -4,22 +4,16 @@ use std::{
     sync::Arc,
 };
 use log::*;
-use tungstenite::{accept, Error, Message, Result, handshake::HandshakeError, handshake::HandshakeRole};
+use tungstenite::Error;
 
 mod websocket;
 mod handlers;
 mod router;
+mod types;
 
 use websocket::handle_client;
-use handlers::{EchoHandler, PingHandler};
+use handlers::{EchoHandler, PingHandler, UnknownHandler};
 use router::Router;
-
-fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
-    match err {
-        HandshakeError::Interrupted(_) => panic!("Bug: blocking socket would block"),
-        HandshakeError::Failure(f) => f,
-    }
-}
 
 fn main() {
     env_logger::init();
@@ -32,14 +26,15 @@ fn main() {
         // 註冊處理器
         router.add_handler(Arc::new(EchoHandler));
         router.add_handler(Arc::new(PingHandler));
+        router.add_handler(Arc::new(UnknownHandler));
 
         spawn(move || match stream {
             Ok(stream) => {
                 if let Err(err) = handle_client(stream, router) {
                     match err {
-                        tungstenite::Error::ConnectionClosed | 
-                        tungstenite::Error::Protocol(_) | 
-                        tungstenite::Error::Utf8 => (),
+                        Error::ConnectionClosed | 
+                        Error::Protocol(_) | 
+                        Error::Utf8 => (),
                         e => error!("WebSocket error: {}", e),
                     }
                 }
