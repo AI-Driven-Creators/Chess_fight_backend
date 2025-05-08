@@ -19,10 +19,8 @@ pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
         match socket.read()? {
             Message::Text(text) => {
                 let response = match serde_json::from_str::<WsRequest>(&text) {
-                    Ok(request) => {
-                        router.handle(&request.action, &request)
-                    }
-                    Err(_) => WsResponse::error("invalid json".to_string()),
+                    Ok(request) => router.handle(&request.action, &request),
+                    Err(_) => WsResponse::invalid_json(),
                 };
 
                 match serde_json::to_string(&response) {
@@ -31,22 +29,26 @@ pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
                     }
                     Err(e) => {
                         error!("Failed to serialize response: {}", e);
-                        let error_response = WsResponse::error("internal server error".to_string());
+                        let error_response = WsResponse::internal_server_error();
                         let error_text = serde_json::to_string(&error_response)
-                            .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string());
+                            .unwrap_or_else(|_| serde_json::to_string(&WsResponse::internal_server_error())
+                                .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string()));
                         socket.send(Message::Text(error_text))?;
                     }
                 }
             }
             Message::Binary(_) => {
-                let response = WsResponse::error("binary not supported".to_string());
+                let response = WsResponse::binary_not_supported();
                 match serde_json::to_string(&response) {
                     Ok(response_text) => {
                         socket.send(Message::Text(response_text))?;
                     }
                     Err(e) => {
                         error!("Failed to serialize response: {}", e);
-                        let error_text = r#"{"status":"error","error":"internal server error"}"#.to_string();
+                        let error_response = WsResponse::internal_server_error();
+                        let error_text = serde_json::to_string(&error_response)
+                            .unwrap_or_else(|_| serde_json::to_string(&WsResponse::internal_server_error())
+                                .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string()));
                         socket.send(Message::Text(error_text))?;
                     }
                 }

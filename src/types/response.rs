@@ -30,4 +30,24 @@ impl WsResponse {
             error: Some(reason),
         }
     }
+
+    pub fn invalid_json() -> Self {
+        Self::error("invalid json".to_string())
+    }
+
+    pub fn internal_server_error() -> Self {
+        Self::error("internal server error".to_string())
+    }
+
+    pub fn missing_action() -> Self {
+        Self::error("missing action".to_string())
+    }
+
+    pub fn unknown_action(action: &str) -> Self {
+        Self::error(format!("unknown action: {}", action))
+    }
+
+    pub fn binary_not_supported() -> Self {
+        Self::error("binary not supported".to_string())
+    }
 }
