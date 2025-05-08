@@ -3,7 +3,10 @@ use std::{
     thread::spawn,
 };
 use log::*;
-use tungstenite::{Error, HandshakeError, Message, Result, accept, handshake::HandshakeRole};
+use tungstenite::{accept, Error, Message, Result, handshake::HandshakeError, handshake::HandshakeRole};
+
+mod handlers;
+use handlers::get_handler;
 
 fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
     match err {
@@ -22,24 +25,22 @@ fn handle_client(stream: TcpStream) -> Result<()> {
                 let response = match serde_json::from_str::<serde_json::Value>(&text) {
                     Ok(val) => {
                         match val.get("action").and_then(|a| a.as_str()) {
-                            Some("echo") => {
-                                let msg = val.get("data").unwrap_or(&serde_json::Value::Null);
-                                serde_json::json!({ "status": "ok", "echo": msg }).to_string()
+                            Some(action) => {
+                                let handler = get_handler(action);
+                                handler.handle(&val)
                             }
-                            Some(other) => {
-                                serde_json::json!({ "status": "error", "reason": format!("unknown action: {}", other) }).to_string()
-                            }
-                            None => serde_json::json!({ "status": "error", "reason": "missing action" }).to_string(),
+                            None => serde_json::json!({ "status": "error", "reason": "missing action" }),
                         }
                     }
-                    Err(_) => serde_json::json!({ "status": "error", "reason": "invalid json" }).to_string(),
+                    Err(_) => serde_json::json!({ "status": "error", "reason": "invalid json" }),
                 };
-                let response_text = response.into();
+
+                let response_text = response.to_string();
                 socket.send(Message::Text(response_text))?;
             }
             Message::Binary(_) => {
                 socket.send(Message::Text(
-                    (r#"{"status":"error","reason":"binary not supported"}"#.to_string()).into(),
+                    r#"{"status":"error","reason":"binary not supported"}"#.into(),
                 ))?;
             }
             Message::Close(_) => {
@@ -55,8 +56,8 @@ fn handle_client(stream: TcpStream) -> Result<()> {
 
 fn main() {
     env_logger::init();
-
     let server = TcpListener::bind("127.0.0.1:9002").unwrap();
+    info!("WebSocket server running on ws://127.0.0.1:9002");
 
     for stream in server.incoming() {
         spawn(move || match stream {
@@ -64,11 +65,11 @@ fn main() {
                 if let Err(err) = handle_client(stream) {
                     match err {
                         Error::ConnectionClosed | Error::Protocol(_) | Error::Utf8 => (),
-                        e => error!("test: {}", e),
+                        e => error!("WebSocket error: {}", e),
                     }
                 }
             }
-            Err(e) => error!("Error accepting stream: {}", e),
+            Err(e) => error!("TCP accept error: {}", e),
         });
     }
 }
