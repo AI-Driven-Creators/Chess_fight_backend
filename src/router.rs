@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use serde_json::Value;
 use crate::handlers::MessageHandler;
+use crate::types::response::{WsRequest, WsResponse};
 
 pub struct Router {
     handlers: Vec<Arc<dyn MessageHandler>>,
@@ -17,17 +17,14 @@ impl Router {
         self.handlers.push(handler);
     }
 
-    pub fn handle(&self, action: &str, val: &Value) -> Value {
+    pub fn handle(&self, action: &str, request: &WsRequest) -> WsResponse {
         for handler in &self.handlers {
             if handler.can_handle(action) {
-                return handler.handle(val);
+                return handler.handle(request);
             }
         }
         
         // 如果沒有找到處理器，返回錯誤
-        serde_json::json!({
-            "status": "error",
-            "reason": format!("unknown action: {}", action)
-        })
+        WsResponse::error(format!("unknown action: {}", action))
     }
 }
