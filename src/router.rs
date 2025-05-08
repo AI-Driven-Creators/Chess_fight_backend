@@ -2,6 +2,7 @@ use std::sync::Arc;
 use crate::handlers::MessageHandler;
 use crate::types::response::{WsRequest, WsResponse};
 
+#[derive(Clone)]
 pub struct Router {
     handlers: Vec<Arc<dyn MessageHandler>>,
 }

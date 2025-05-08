@@ -1,22 +1,24 @@
-use std::net::TcpStream;
-use tungstenite::{accept, Error, Message, Result, handshake::HandshakeError, handshake::HandshakeRole};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{
+    accept_async,
+    tungstenite::{Message, Result},
+};
+use futures_util::{SinkExt, StreamExt};
 use log::*;
 use crate::router::Router;
 use crate::types::response::{WsRequest, WsResponse};
 
-pub fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
-    match err {
-        HandshakeError::Interrupted(_) => panic!("Bug: blocking socket would block"),
-        HandshakeError::Failure(f) => f,
-    }
-}
+pub async fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
+    let addr = stream.peer_addr().expect("connected streams should have a peer address");
+    info!("Client connected: {}", addr);
 
-pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
-    let mut socket = accept(stream).map_err(must_not_block)?;
-    info!("Client connected");
+    let ws_stream = accept_async(stream).await.expect("Error during the websocket handshake occurred");
+    info!("WebSocket connection established: {}", addr);
 
-    loop {
-        match socket.read()? {
+    let (mut write, mut read) = ws_stream.split();
+
+    while let Some(msg) = read.next().await {
+        match msg? {
             Message::Text(text) => {
                 let response = match serde_json::from_str::<WsRequest>(&text) {
                     Ok(request) => router.handle(&request.action, &request),
@@ -25,7 +27,7 @@ pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
 
                 match serde_json::to_string(&response) {
                     Ok(response_text) => {
-                        socket.send(Message::Text(response_text))?;
+                        write.send(Message::Text(response_text)).await?;
                     }
                     Err(e) => {
                         error!("Failed to serialize response: {}", e);
@@ -33,7 +35,7 @@ pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
                         let error_text = serde_json::to_string(&error_response)
                             .unwrap_or_else(|_| serde_json::to_string(&WsResponse::internal_server_error())
                                 .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string()));
-                        socket.send(Message::Text(error_text))?;
+                        write.send(Message::Text(error_text)).await?;
                     }
                 }
             }
@@ -41,7 +43,7 @@ pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
                 let response = WsResponse::binary_not_supported();
                 match serde_json::to_string(&response) {
                     Ok(response_text) => {
-                        socket.send(Message::Text(response_text))?;
+                        write.send(Message::Text(response_text)).await?;
                     }
                     Err(e) => {
                         error!("Failed to serialize response: {}", e);
@@ -49,12 +51,12 @@ pub fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
                         let error_text = serde_json::to_string(&error_response)
                             .unwrap_or_else(|_| serde_json::to_string(&WsResponse::internal_server_error())
                                 .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string()));
-                        socket.send(Message::Text(error_text))?;
+                        write.send(Message::Text(error_text)).await?;
                     }
                 }
             }
             Message::Close(_) => {
-                info!("Connection closed by client");
+                info!("Connection closed by client: {}", addr);
                 break;
             }
             _ => {}
