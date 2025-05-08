@@ -1,10 +1,7 @@
-use std::{
-    net::TcpListener,
-    thread::spawn,
-    sync::Arc,
-};
+use std::sync::Arc;
+use tokio::net::TcpListener;
 use log::*;
-use tungstenite::Error;
+use tokio_tungstenite::tungstenite::Error;
 
 mod websocket;
 mod handlers;
@@ -15,31 +12,36 @@ use websocket::handle_client;
 use handlers::{EchoHandler, PingHandler, UnknownHandler};
 use router::Router;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let server = TcpListener::bind("127.0.0.1:9002").unwrap();
-    info!("WebSocket server running on ws://127.0.0.1:9002");
+    
+    let addr = "127.0.0.1:9002";
+    let listener = TcpListener::bind(addr).await?;
+    info!("WebSocket server running on ws://{}", addr);
 
-    for stream in server.incoming() {
-        let mut router = Router::new();
+    let mut router = Router::new();
+    
+    // 註冊處理器
+    router.add_handler(Arc::new(EchoHandler));
+    router.add_handler(Arc::new(PingHandler));
+    router.add_handler(Arc::new(UnknownHandler));
+
+    while let Ok((stream, addr)) = listener.accept().await {
+        info!("New connection from: {}", addr);
         
-        // 註冊處理器
-        router.add_handler(Arc::new(EchoHandler));
-        router.add_handler(Arc::new(PingHandler));
-        router.add_handler(Arc::new(UnknownHandler));
-
-        spawn(move || match stream {
-            Ok(stream) => {
-                if let Err(err) = handle_client(stream, router) {
-                    match err {
-                        Error::ConnectionClosed | 
-                        Error::Protocol(_) | 
-                        Error::Utf8 => (),
-                        e => error!("WebSocket error: {}", e),
-                    }
+        let router = router.clone();
+        tokio::spawn(async move {
+            if let Err(err) = handle_client(stream, router).await {
+                match err {
+                    Error::ConnectionClosed | 
+                    Error::Protocol(_) | 
+                    Error::Utf8 => (),
+                    e => error!("WebSocket error: {}", e),
                 }
             }
-            Err(e) => error!("TCP accept error: {}", e),
         });
     }
+
+    Ok(())
 }
