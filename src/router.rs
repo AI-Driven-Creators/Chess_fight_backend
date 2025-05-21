@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use crate::handlers::MessageHandler;
 use crate::types::response::{WsRequest, WsResponse};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Router {
@@ -24,7 +24,7 @@ impl Router {
                 return handler.handle(request);
             }
         }
-        
+
         // 如果沒有找到處理器，返回錯誤
         WsResponse::error(format!("unknown action: {}", action))
     }

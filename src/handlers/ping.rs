@@ -1,5 +1,5 @@
-use crate::types::response::{WsRequest, WsResponse};
 use super::MessageHandler;
+use crate::types::response::{WsRequest, WsResponse};
 
 pub struct PingHandler;
 
@@ -11,4 +11,4 @@ impl MessageHandler for PingHandler {
     fn can_handle(&self, action: &str) -> bool {
         action == "ping"
     }
-} 
+}

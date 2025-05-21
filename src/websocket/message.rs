@@ -1,8 +1,8 @@
-use tokio_tungstenite::tungstenite::{Message, Result, Error};
-use futures_util::SinkExt;
-use log::*;
 use crate::router::Router;
 use crate::types::response::{WsRequest, WsResponse};
+use futures_util::SinkExt;
+use log::*;
+use tokio_tungstenite::tungstenite::{Error, Message, Result};
 
 pub async fn handle_text_message(
     text: &str,
@@ -38,4 +38,4 @@ pub async fn send_timeout_message(
         .unwrap_or_else(|_| r#"{"status":"error","error":"timeout"}"#.to_string());
     write.send(Message::Text(timeout_text)).await?;
     Ok(())
-} 
+}

@@ -1,5 +1,5 @@
-use crate::types::response::{WsRequest, WsResponse};
 use super::MessageHandler;
+use crate::types::response::{WsRequest, WsResponse};
 
 pub struct UnknownHandler;
 
@@ -11,4 +11,4 @@ impl MessageHandler for UnknownHandler {
     fn can_handle(&self, _action: &str) -> bool {
         true // 作為默認處理器
     }
-} 
+}
