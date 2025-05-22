@@ -41,16 +41,55 @@ pub struct SkillEffectMeta {
 
 /// 技能效果
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", content = "value", rename_all = "PascalCase")]
+#[serde(tag = "type", rename_all = "PascalCase")]
 pub enum SkillEffect {
-    PhysicalDamage  { amount: u32, target: SkillTarget },
-    MagicalDamage  { amount: u32, target: SkillTarget },
-    TrueDamage     { amount: u32, target: SkillTarget },
-    Heal           { amount: u32, target: SkillTarget },
-    Dash          { distance: u32, target: SkillTarget },
-    Buff    { effect: StatusEffect, target: SkillTarget },
-    Debuff  { effect: StatusEffect, target: SkillTarget },
+    PhysicalDamage {
+        attr: AttrType,
+        ratio: f32,
+        target: SkillTarget,
+    },
+    MagicalDamage {
+        attr: AttrType,
+        ratio: f32,
+        target: SkillTarget,
+    },
+    TrueDamage {
+        attr: AttrType,
+        ratio: f32,
+        target: SkillTarget,
+    },
+    Heal {
+        attr: AttrType,
+        ratio: f32,
+        target: SkillTarget,
+    },
+    FlatDamage {
+        amount: u32,
+        target: SkillTarget,
+    },
+    Dash {
+        distance: u32,
+        target: SkillTarget,
+    },
+    Buff {
+        effect: StatusEffect,
+        target: SkillTarget,
+    },
+    Debuff {
+        effect: StatusEffect,
+        target: SkillTarget,
+    },
 }
+
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AttrType {
+    AttackDamage,
+    AbilityPower,
+    // 其他你想支援的屬性
+}
+
 
 /// 目標對象
 #[derive(Debug, Clone, Serialize, Deserialize)]
