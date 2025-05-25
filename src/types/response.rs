@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio_tungstenite::tungstenite::{Error, Message, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WsRequest {
@@ -9,25 +10,23 @@ pub struct WsRequest {
 
 #[derive(Debug, Serialize)]
 pub struct WsResponse {
-    pub status: String,
-    pub data: Option<Value>,
-    pub error: Option<String>,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub payload: Option<Value>,
 }
 
 impl WsResponse {
     pub fn ok(data: Option<Value>) -> Self {
         Self {
-            status: "ok".to_string(),
-            data,
-            error: None,
+            type_: "Success".to_string(),
+            payload: data,
         }
     }
 
     pub fn error(reason: String) -> Self {
         Self {
-            status: "error".to_string(),
-            data: None,
-            error: Some(reason),
+            type_: "Error".to_string(),
+            payload: Some(serde_json::json!({ "error": reason })),
         }
     }
 

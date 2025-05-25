@@ -9,6 +9,6 @@ impl MessageHandler for UnknownHandler {
     }
 
     fn can_handle(&self, _action: &str) -> bool {
-        true // 作為默認處理器
+        true // 作为默认处理器
     }
 }
