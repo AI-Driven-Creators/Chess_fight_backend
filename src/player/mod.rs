@@ -21,10 +21,26 @@ pub struct PlayerManager {
 
 impl PlayerManager {
     pub fn new() -> Self {
+        let mut map = HashMap::new();
+    
+        // 插入預設玩家 "1"
+        map.insert(
+            "p1".to_string(),
+            PlayerData {
+                id: "p1".to_string(),
+                money: 0,
+                xp: XPData {
+                    current: 0,
+                    required: 2,
+                },
+            },
+        );
+    
         Self {
-            players: Arc::new(Mutex::new(HashMap::new())),
+            players: Arc::new(Mutex::new(map)),
         }
     }
+    
 
     pub fn get_player(&self, player_id: &str) -> Option<PlayerData> {
         let players = self.players.lock().unwrap();
