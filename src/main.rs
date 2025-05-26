@@ -9,7 +9,7 @@ mod types;
 mod websocket;
 mod player;
 
-use handlers::{EchoHandler, PingHandler, UnknownHandler, BuyXPHandler};
+use handlers::{EchoHandler, PingHandler, UnknownHandler, BuyXPHandler, ShopHandler};
 use router::Router;
 use websocket::handle_client;
 use player::PlayerManager;
@@ -29,6 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     router.add_handler(Arc::new(EchoHandler));
     router.add_handler(Arc::new(PingHandler));
     router.add_handler(Arc::new(BuyXPHandler::new(player_manager.clone())));
+    router.add_handler(Arc::new(ShopHandler));
     router.add_handler(Arc::new(UnknownHandler));
     
     while let Ok((stream, addr)) = listener.accept().await {

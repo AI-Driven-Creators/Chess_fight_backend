@@ -9,8 +9,10 @@ pub mod echo;
 pub mod ping;
 pub mod unknown;
 pub mod buy_xp;
+pub mod shop;
 
 pub use echo::EchoHandler;
 pub use ping::PingHandler;
 pub use unknown::UnknownHandler;
 pub use buy_xp::BuyXPHandler;
+pub use shop::ShopHandler;
