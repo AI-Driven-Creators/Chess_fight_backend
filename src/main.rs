@@ -7,10 +7,12 @@ mod handlers;
 mod router;
 mod types;
 mod websocket;
+mod player;
 
 use handlers::{EchoHandler, PingHandler, UnknownHandler, BuyXPHandler};
 use router::Router;
 use websocket::handle_client;
+use player::PlayerManager;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,11 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("WebSocket server running on ws://{}", addr);
 
     let mut router = Router::new();
+    let player_manager = Arc::new(PlayerManager::new());
 
     // 註冊處理器
     router.add_handler(Arc::new(EchoHandler));
     router.add_handler(Arc::new(PingHandler));
-    router.add_handler(Arc::new(BuyXPHandler));
+    router.add_handler(Arc::new(BuyXPHandler::new(player_manager.clone())));
     router.add_handler(Arc::new(UnknownHandler));
     
     while let Ok((stream, addr)) = listener.accept().await {

@@ -1,8 +1,18 @@
 use super::MessageHandler;
 use crate::types::response::{WsRequest, WsResponse};
+use crate::player::PlayerManager;
 use serde_json::json;
+use std::sync::Arc;
 
-pub struct BuyXPHandler;
+pub struct BuyXPHandler {
+    player_manager: Arc<PlayerManager>,
+}
+
+impl BuyXPHandler {
+    pub fn new(player_manager: Arc<PlayerManager>) -> Self {
+        Self { player_manager }
+    }
+}
 
 impl MessageHandler for BuyXPHandler {
     fn handle(&self, val: &WsRequest) -> WsResponse {
@@ -15,26 +25,26 @@ impl MessageHandler for BuyXPHandler {
             None => return WsResponse::error("missing playerId".to_string()),
         };
 
-        // TODO: 这里应该添加实际的游戏逻辑，比如检查玩家金钱、更新经验值等
-        // 这里只是示例响应
-        let success = true; // 假设购买成功
-
-        if success {
-            WsResponse::ok(Some(json!({
-                "playerId": player_id,
-                "success": true,
-                "money": 4,
-                "xp": {
-                    "current": 6,
-                    "required": 8
-                }
-            })))
-        } else {
-            WsResponse::ok(Some(json!({
-                "playerId": player_id,
-                "success": false,
-                "reason": "not enough money"
-            })))
+        // 尝试购买经验值
+        match self.player_manager.buy_xp(player_id) {
+            Ok(player) => {
+                WsResponse::ok(Some(json!({
+                    "playerId": player.id,
+                    "success": true,
+                    "money": player.money,
+                    "xp": {
+                        "current": player.xp.current,
+                        "required": player.xp.required
+                    }
+                })))
+            }
+            Err(reason) => {
+                WsResponse::ok(Some(json!({
+                    "playerId": player_id,
+                    "success": false,
+                    "reason": reason
+                })))
+            }
         }
     }
 
