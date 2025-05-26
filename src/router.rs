@@ -25,7 +25,7 @@ impl Router {
             }
         }
 
-        // 如果沒有找到處理器，返回錯誤
+        // 如果没有找到处理器，返回错误
         WsResponse::error(format!("unknown action: {}", action))
     }
 }

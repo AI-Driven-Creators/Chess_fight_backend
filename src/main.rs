@@ -8,7 +8,7 @@ mod router;
 mod types;
 mod websocket;
 
-use handlers::{EchoHandler, PingHandler, UnknownHandler};
+use handlers::{EchoHandler, PingHandler, UnknownHandler, BuyXPHandler};
 use router::Router;
 use websocket::handle_client;
 
@@ -25,8 +25,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 註冊處理器
     router.add_handler(Arc::new(EchoHandler));
     router.add_handler(Arc::new(PingHandler));
+    router.add_handler(Arc::new(BuyXPHandler));
     router.add_handler(Arc::new(UnknownHandler));
-
+    
     while let Ok((stream, addr)) = listener.accept().await {
         info!("New connection from: {}", addr);
 

@@ -10,12 +10,12 @@ pub async fn handle_text_message(
     write: &mut (impl SinkExt<Message, Error = Error> + Unpin),
 ) -> Result<()> {
     let response = match serde_json::from_str::<WsRequest>(text) {
-        Ok(request) => router.handle(&request.action, &request),
+        Ok(request) => router.handle(&request.type_, &request),
         Err(_) => WsResponse::invalid_json(),
     };
 
     let response_text = serde_json::to_string(&response)
-        .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string());
+        .unwrap_or_else(|_| r#"{"type":"Error","payload":{"error":"internal server error"}}"#.to_string());
     write.send(Message::Text(response_text)).await?;
     Ok(())
 }
@@ -25,7 +25,7 @@ pub async fn handle_binary_message(
 ) -> Result<()> {
     let response = WsResponse::binary_not_supported();
     let response_text = serde_json::to_string(&response)
-        .unwrap_or_else(|_| r#"{"status":"error","error":"internal server error"}"#.to_string());
+        .unwrap_or_else(|_| r#"{"type":"Error","payload":{"error":"internal server error"}}"#.to_string());
     write.send(Message::Text(response_text)).await?;
     Ok(())
 }
@@ -35,7 +35,7 @@ pub async fn send_timeout_message(
 ) -> Result<()> {
     let timeout_msg = WsResponse::error("connection timeout".to_string());
     let timeout_text = serde_json::to_string(&timeout_msg)
-        .unwrap_or_else(|_| r#"{"status":"error","error":"timeout"}"#.to_string());
+        .unwrap_or_else(|_| r#"{"type":"Error","payload":{"error":"timeout"}}"#.to_string());
     write.send(Message::Text(timeout_text)).await?;
     Ok(())
 }

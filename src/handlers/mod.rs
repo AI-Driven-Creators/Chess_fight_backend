@@ -8,7 +8,9 @@ pub trait MessageHandler: Send + Sync {
 pub mod echo;
 pub mod ping;
 pub mod unknown;
+pub mod buy_xp;
 
 pub use echo::EchoHandler;
 pub use ping::PingHandler;
 pub use unknown::UnknownHandler;
+pub use buy_xp::BuyXPHandler;

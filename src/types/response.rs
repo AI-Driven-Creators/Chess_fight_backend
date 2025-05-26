@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tokio_tungstenite::tungstenite::{Error, Message, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WsRequest {
-    pub action: String,
-    pub data: Value,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub payload: Value,
 }
 
 #[derive(Debug, Serialize)]
