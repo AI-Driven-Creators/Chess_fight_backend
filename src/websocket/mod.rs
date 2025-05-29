@@ -41,12 +41,16 @@ pub async fn handle_client(stream: TcpStream, router: Router) -> Result<()> {
         match read_result {
             Ok(Some(Ok(msg))) => match msg {
                 Message::Text(text) => {
+                    println!("收到前端文字訊息: {}", text);
+
                     if let Err(e) = handle_text_message(&text, &router, &mut write).await {
                         error!("Failed to handle text message from {}: {}", addr, e);
                         break;
                     }
                 }
                 Message::Binary(_) => {
+                    println!("收到前端二進位訊息");
+
                     if let Err(e) = handle_binary_message(&mut write).await {
                         error!("Failed to handle binary message from {}: {}", addr, e);
                         break;
