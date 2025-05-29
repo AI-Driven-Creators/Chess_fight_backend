@@ -87,4 +87,17 @@ impl PlayerManager {
 
         Ok(player.clone())
     }
+    
+    pub fn refresh_shop(&self, player_id: &str) -> Result<i32, String> {
+        let mut players = self.players.lock().unwrap();
+        let player = players.get_mut(player_id).ok_or("Player not found")?;
+    
+        if player.money < 2 {
+            return Err("not enough money".to_string());
+        }
+    
+        player.money -= 2;
+        Ok(player.money)
+    }
+    
 } 

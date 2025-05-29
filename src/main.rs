@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     router.add_handler(Arc::new(EchoHandler));
     router.add_handler(Arc::new(PingHandler));
     router.add_handler(Arc::new(BuyXPHandler::new(player_manager.clone())));
-    router.add_handler(Arc::new(ShopHandler));
+    router.add_handler(Arc::new(ShopHandler::new(player_manager.clone())));
     router.add_handler(Arc::new(CreateGameHandler));
     router.add_handler(Arc::new(UnknownHandler));
     
