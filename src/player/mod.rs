@@ -28,7 +28,7 @@ impl PlayerManager {
             "p1".to_string(),
             PlayerData {
                 id: "p1".to_string(),
-                money: 0,
+                money: 100,
                 xp: XPData {
                     current: 0,
                     required: 2,

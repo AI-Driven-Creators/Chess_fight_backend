@@ -28,22 +28,28 @@ impl MessageHandler for BuyXPHandler {
         // 尝试购买经验值
         match self.player_manager.buy_xp(player_id) {
             Ok(player) => {
-                WsResponse::ok(Some(json!({
-                    "playerId": player.id,
-                    "success": true,
-                    "money": player.money,
-                    "xp": {
-                        "current": player.xp.current,
-                        "required": player.xp.required
-                    }
-                })))
+                WsResponse {
+                    type_: "BuyXPResult".to_string(),
+                    payload: Some(json!({
+                        "playerId": player.id,
+                        "success": true,
+                        "money": player.money,
+                        "xp": {
+                            "current": player.xp.current,
+                            "required": player.xp.required
+                        }
+                    })),
+                }
             }
             Err(reason) => {
-                WsResponse::ok(Some(json!({
-                    "playerId": player_id,
-                    "success": false,
-                    "reason": reason
-                })))
+                WsResponse {
+                    type_: "BuyXPResult".to_string(),
+                    payload: Some(json!({
+                        "playerId": player_id,
+                        "success": false,
+                        "reason": reason
+                    })),
+                }
             }
         }
     }

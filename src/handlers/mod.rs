@@ -10,9 +10,11 @@ pub mod ping;
 pub mod unknown;
 pub mod buy_xp;
 pub mod shop;
+pub mod create_game;
 
 pub use echo::EchoHandler;
 pub use ping::PingHandler;
 pub use unknown::UnknownHandler;
 pub use buy_xp::BuyXPHandler;
 pub use shop::ShopHandler;
+pub use create_game::CreateGameHandler;
