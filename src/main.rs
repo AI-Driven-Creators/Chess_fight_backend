@@ -8,11 +8,15 @@ mod router;
 mod types;
 mod websocket;
 mod player;
+mod control;
+mod data;
 
-use handlers::{EchoHandler, PingHandler, UnknownHandler, BuyXPHandler, ShopHandler, CreateGameHandler};
+use handlers::{EchoHandler, PingHandler, UnknownHandler, BuyXPHandler, ShopHandler, CreateGameHandler, GameStateMessageHandler};
 use router::Router;
 use websocket::handle_client;
 use player::PlayerManager;
+use crate::control::game_state_control::GameStateControl;
+use data::{all_chess_pieces,initial_money,initial_experience};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -31,6 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     router.add_handler(Arc::new(BuyXPHandler::new(player_manager.clone())));
     router.add_handler(Arc::new(ShopHandler::new(player_manager.clone())));
     router.add_handler(Arc::new(CreateGameHandler));
+    router.add_handler(Arc::new(GameStateMessageHandler::new(player_manager.clone())));
     router.add_handler(Arc::new(UnknownHandler));
     
     while let Ok((stream, addr)) = listener.accept().await {
