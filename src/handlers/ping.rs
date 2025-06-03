@@ -1,10 +1,12 @@
 use super::MessageHandler;
 use crate::types::response::{WsRequest, WsResponse};
+use async_trait::async_trait;
 
 pub struct PingHandler;
 
+#[async_trait]
 impl MessageHandler for PingHandler {
-    fn handle(&self, _val: &WsRequest) -> WsResponse {
+    async fn handle(&self, _val: &WsRequest) -> WsResponse {
         WsResponse::ok(Some(serde_json::json!({ "pong": true })))
     }
 

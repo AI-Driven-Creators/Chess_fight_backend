@@ -18,10 +18,10 @@ impl Router {
         self.handlers.push(handler);
     }
 
-    pub fn handle(&self, action: &str, request: &WsRequest) -> WsResponse {
+    pub async fn handle(&self, action: &str, request: &WsRequest) -> WsResponse {
         for handler in &self.handlers {
             if handler.can_handle(action) {
-                return handler.handle(request);
+                return handler.handle(request).await;
             }
         }
 

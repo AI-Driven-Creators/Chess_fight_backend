@@ -3,6 +3,7 @@ use crate::types::response::{WsRequest, WsResponse};
 use crate::player::PlayerManager;
 use serde_json::json;
 use std::sync::Arc;
+use async_trait::async_trait;
 
 pub struct BuyXPHandler {
     player_manager: Arc<PlayerManager>,
@@ -14,8 +15,9 @@ impl BuyXPHandler {
     }
 }
 
+#[async_trait]
 impl MessageHandler for BuyXPHandler {
-    fn handle(&self, val: &WsRequest) -> WsResponse {
+    async fn handle(&self, val: &WsRequest) -> WsResponse {
         // 从请求中获取 playerId
         let player_id = match val.payload.get("playerId") {
             Some(id) => match id.as_str() {

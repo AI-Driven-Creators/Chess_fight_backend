@@ -1,10 +1,12 @@
 use super::MessageHandler;
 use crate::types::response::{WsRequest, WsResponse};
+use async_trait::async_trait;
 
 pub struct EchoHandler;
 
+#[async_trait]
 impl MessageHandler for EchoHandler {
-    fn handle(&self, val: &WsRequest) -> WsResponse {
+    async fn handle(&self, val: &WsRequest) -> WsResponse {
         WsResponse::ok(Some(val.payload.clone()))
     }
 

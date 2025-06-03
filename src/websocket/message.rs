@@ -10,7 +10,7 @@ pub async fn handle_text_message(
     write: &mut (impl SinkExt<Message, Error = Error> + Unpin),
 ) -> Result<()> {
     let response = match serde_json::from_str::<WsRequest>(text) {
-        Ok(request) => router.handle(&request.type_, &request),
+        Ok(request) => router.handle(&request.type_, &request).await,
         Err(_) => WsResponse::invalid_json(),
     };
 

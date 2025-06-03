@@ -5,6 +5,7 @@ use serde_json::json;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::sync::Arc;
+use async_trait::async_trait;
 
 pub struct ShopHandler {
     player_manager: Arc<PlayerManager>,
@@ -22,8 +23,9 @@ const ALL_CHESS: &[&str] = &[
     "Engineer", "Beastmaster", "Phantom", "Guardian", "Elemental"
 ];
 
+#[async_trait]
 impl MessageHandler for ShopHandler {
-    fn handle(&self, val: &WsRequest) -> WsResponse {
+    async fn handle(&self, val: &WsRequest) -> WsResponse {
         // 解析 playerId
         let player_id = match val.payload.get("playerId") {
             Some(id) => match id.as_str() {

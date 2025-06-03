@@ -2,11 +2,13 @@ use super::MessageHandler;
 use crate::types::response::{WsRequest, WsResponse};
 use serde_json::json;
 use rand::{distributions::Alphanumeric, Rng};
+use async_trait::async_trait;
 
 pub struct CreateGameHandler;
 
+#[async_trait]
 impl MessageHandler for CreateGameHandler {
-    fn handle(&self, val: &WsRequest) -> WsResponse {
+    async fn handle(&self, val: &WsRequest) -> WsResponse {
         // 產生隨機 playerId
         let rand_string: String = rand::thread_rng()
             .sample_iter(&Alphanumeric)
