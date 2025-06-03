@@ -26,7 +26,7 @@ impl MessageHandler for GameStateMessageHandler {
         &self,
         message: &WsRequest,
     ) -> WsResponse {
-		println!("進入MessageHandler");
+		//println!("進入MessageHandler");
         if message.type_ == "GetGameState" {
             // 步驟1. 從 websocket 拿到 playerId
             let player_id = message.payload.get("playerId").and_then(|v| v.as_str()).unwrap_or("");
@@ -38,8 +38,10 @@ impl MessageHandler for GameStateMessageHandler {
 			return WsResponse {
 				type_: "GetGameStateResult".to_string(),
 				payload: Some(json!({
+					"success": true,
+					"gameId": "待更新",
                     "playerId": player_id,
-                    "gameState": game_state
+                    "state": game_state
 				})),
 			}
         }
@@ -48,9 +50,9 @@ impl MessageHandler for GameStateMessageHandler {
 			return WsResponse {
 				type_: "GetGameStateResult".to_string(),
 				payload: Some(json!({
-					"playerId": player_id,
 					"success": false,
-					"reason":"message型別不正確"
+					"playerId": player_id,
+					"reason":"後端message型別不正確"
 				})),
     	}
 		}
